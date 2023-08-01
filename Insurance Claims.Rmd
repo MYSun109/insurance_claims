@@ -1,9 +1,4 @@
----
-title: "Assignment 1 Stat7040"
-author: "Mengyu Sun u7460189"
-date: "2022/3/16"
-output: html_document
----
+
 
 ```{r }
 knitr::opts_chunk$set(echo = FALSE)
