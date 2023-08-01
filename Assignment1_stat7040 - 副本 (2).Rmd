@@ -1,0 +1,762 @@
+---
+title: "Assignment 1 Stat7040"
+author: "Mengyu Sun u7460189"
+date: "2022/3/16"
+output: html_document
+---
+
+```{r }
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(faraway)
+```
+
+##Import Data
+```{r echo=FALSE}
+mydata<-read.table("C:\\Users\\apple\\Desktop\\data.txt")
+```
+
+##Firstly I found that the first row of mydata is the name of each column and not the number, so I deleted the first row and renamed the name of each column.(Y,x1,...,x7) Then I found that the datatype of each column of data was not numeric except for x6, so I changed the datatype.
+```{r}
+mydata<-mydata[-1,]
+names(mydata)<-c("Y","x1","x2","x3","x4","x5","x6","x7")
+mydata$Y<-as.numeric(mydata$Y)
+mydata$x1<-as.numeric(mydata$x1)
+mydata$x2<-as.numeric(mydata$x2)
+mydata$x3<-as.numeric(mydata$x3)
+mydata$x4<-as.numeric(mydata$x4)
+mydata$x5<-as.numeric(mydata$x5)
+mydata$x7<-as.numeric(mydata$x7)
+mydata
+```
+
+```{r}
+##set training data and test data.
+training.data <- mydata[1:300,]
+
+test.data <- mydata[-c(1:300),]
+
+## x.test <- test.data[,-1] 
+```
+
+```{r}
+head(training.data)
+head(test.data)
+summary(training.data)
+```
+
+## (a) (21 points)
+```{r}
+library(tidyverse)
+```
+#Firstly, I made plots of y and each x respectively to see the relationship between y and each x in the raw data.
+1,For plot Y against X1(Age), the data is mainly distributed in the range from 0 to 10000USD as the age increases, and the variance first increased and then decreased as the age increases.(not constant) From this, it can be found that the relationship between Claims amount and Age is not very linear, and there are obviously some outliers. Therefore further transformation is required.
+
+2,For plot Y against X2(Procedures), the variance increase when Procedures number increases.Also,the data is mainly distributed in the lower left corner. There is an obvious outlier as X2(Procedures) larger than 40.The relationship is still not linear and need some transformation.
+
+3,For plot Y against X3(Prescribed Drugs), the variance decreases when Prescribed Drugs number increases.
+It can also be found thay most women with coronary heart disease take less than 5 Prescribed Drugs.(especially 0 Prescribed Drugs) Also, There are two obvious outliers as Prescribed Drugs number larger than 5.The relationship is still not linear and need some transformation.
+
+4,For plot Y against X4(Emergency Room Visits), the variance decreases when Emergency Room Visits number increases. Also, the data are mainly distributed in the interval where the number of Emergency Room Visits is less than 10. In addition, There is an obvious outliers as Emergency Room Visits number larger than 15.The relationship is not linear and need some transformation.
+
+5,For plot Y against X5(Complications): there are only two numbers for variable x5.(1 and 0 means have Complications or not for women with coronary heart disease). This plot looks good and may not need transformation.
+
+6,For plot Y against X6(Comorbidities): there are three levels of variable X6.(low, medium, high), so making a box plot is more suitable to describe the relationship between Y and X6. It can be found that the variance is not constant for three levels, and there are so many outliers. This means that some transformation is necessary.
+
+7,For plot Y against X7(Duration), the data is basically evenly distributed in different duration days. However, the variance is not constant when duration days increase. Also, there are some outliers in the plot. Therefore, some transformation is required.
+
+8,For the plot of Y (Claims amount USD), it looks quite similar as plot 7. It can be found that most Claims amounts are under 10000 USD. Also, the variance of Y is not constant, and it can be seen some outliers in this plot. So, Y need some transformation.
+
+Summarize: It can be found that most of the variance changes are not constant in the above plots, and some transformations are required. Since it was found that the values of Y is also not scattered, first try to do the natural log transformation of the response(Y), and then further transform according to the result.
+```{r echo=FALSE}
+## visualisations without transformation
+plot(training.data$x1,training.data$Y,pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x2,training.data$Y,pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x3,training.data$Y,pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x4,training.data$Y,pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x5,training.data$Y,pch=16, col="blue", cex.lab=1.5)
+ggplot(training.data,aes(x=x6, y=Y))+geom_boxplot()
+plot(training.data$x7,training.data$Y,pch=16, col="blue", cex.lab=1.5)
+plot(training.data$Y)
+```
+
+After the log transformation of Y, it can be found that most plots did well enough except Y against X2.
+Although plots of Y against X3 and X4 still have outliers, the number is much reduced compared to the original data (only one outlier each).
+Compared with the raw data, except for plot Y against X2, almost all points are evenly distributed, and the variance changes are consistent for each plot.
+About plot Y against X2, although it is much better than before, it is still not good enough.
+```{r echo=FALSE}
+## visualisations with transformation of log(Y)
+plot(training.data$x1,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x2,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x3,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x4,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x5,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+ggplot(training.data,aes(x=x6, y=log(Y)))+geom_boxplot()
+plot(training.data$x7,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+plot(log(training.data$Y))
+```
+
+Now focus on Y and X2 plot, after comparing the three cases, it can be found that log transforming both Y and X2 is a better choice.(but still not good enough). This may be an unusual case.
+```{r}
+par(mfcol=c(2,2))
+plot(training.data$x2,training.data$Y,pch=16, col="blue", cex.lab=1.5)
+plot(training.data$x2,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+plot(log(training.data$x2),log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+plot(log(training.data$x2),log(log(training.data$Y)),pch=16, col="blue", cex.lab=1.5)
+```
+From part 1a, I think the natural log transformation of the response(Y) is necessary to build the model, so I will perform log transformation on Y for the following models.  
+
+##(b) (8 points)
+For this part, the covariate Prescribed Drugs is represented by X3 in the model.
+The requirement is to determine whether there is a nonlinear relationship between X3 and the response(Y), so I first established an null model(mod0) (H0: beta2 of I(x3^2)=beta3 of I(x3^3)=0 ,which means there is no nonlinear relationship.)
+I then built a model(mod1) with quadratic and cubic relations and compared the two models.
+Through the regression results(mod1), it can be found that according to the t test, the three variables x3,I(x3^2),I(x3^3) are not statistically significant at 5% level.(p-value all > 0.05).
+However, the ANOVA test of the model reordered according to the p-value of the regression results shows that only X3 is statistically significant(p-value=0.003829<0.05).
+Then I did a F-test through the function anova(mod1,mod0). The result of F-test shows that the p-value=0.5383 which is much larger than 0.05, so it is suggested that we can not reject the small model which is H0 model(mod0). In other words, there is no nonlinear relationship between X3 and Y at 5% level.
+
+The Adjusted R-squared is 0.02204, which is too small.(bad information)
+
+At the same time, I also made an plot that shows the fitted model1. The red line in the figure represents the graph of mod1, and the blue dots represent the data. It can be found that mod1 can still reflect the trend of the data, but it is a bit too flexible.
+Based on the above conclusions, mod1 is not very suitable. Therefore, I deleted the quadratic and cubic terms respectively(According to p-value)(backward selection), and established some new models for testing.
+```{r}
+#set model (H0 and H1)
+mod0 <- lm(log(Y)~x3, data=training.data)
+mod1 <- lm(log(Y)~x3+I(x3^2)+I(x3^3), data=training.data)
+#change order for anova
+mod11<- lm(log(Y)~x3+I(x3^3)+I(x3^2), data=training.data)
+summary(mod1)
+anova(mod1)
+anova(mod11)
+
+#plot
+plot(training.data$x3,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+sort.x3<-sort(training.data$x3)
+fit.lm<-mod1$coef[1]+mod1$coef[2]*sort.x3+mod1$coef[3]*sort.x3^2+mod1$coef[4]*sort.x3^3
+lines(sort.x3,fit.lm, type="l", lwd=3, col="red")
+
+#joint F test
+anova(mod1,mod0)
+```
+For the model mod2, from the regression results, both variables x3 and I(x3^2) are not statistically significant according to the t-test.(p-value>>0.05).
+But the anova test tells us that only X3 is statistically significant(p-value=0.003825<0.05), the quadratic term of x3 (I(x3^2)) is not significant(p-value=0.594985>>0.05).
+Although the F test and the ANOVA test are practically the same with just one more variable added, I still decided to do another F test(compare with mod0) to verify the ANOVA test results. It can be found that the results are the same, the p-value(0.595) is greater than 0.05, which suggests that we cannot reject the null hypothesis, that is, the small model.
+For the plot, we can find that this model do better.
+The Adjusted R-squared is 0.02218. Although an improvement over Mod1, it is still too small. (still not good) 
+In summary, although from the plot, the model has become better, but according to the regression results and t test, ANOVA test, F test results, there are still insignificant variables(I(x3^2)), so the model still needs to be improved.
+```{r}
+mod2 <- lm(log(Y)~x3+I(x3^2), data=training.data)
+summary(mod2)
+anova(mod2)
+## plot
+plot(training.data$x3,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+sort.x3<-sort(training.data$x3)
+fit.lm2<-mod2$coef[1]+mod2$coef[2]*sort.x3+mod2$coef[3]*sort.x3^2
+lines(sort.x3,fit.lm2, type="l", lwd=3, col="red")
+## F joint test
+anova(mod2,mod0)
+```
+
+For mod3, the results are very similar to the mod2.
+From the regression results, both variables x3 and I(x3^3) are not statistically significant according to the t-test.(p-value>>0.05).
+
+From the anova test, only X3 is statistically significant(p-value=0.003811<0.05), the cubic term of x3 (I(x3^3)) is not significant(p-value=0.467385>>0.05).
+
+From the F test, it can be found that the results are the same as anova test, the p-value is 0.4674. Although the p-value has decreased, it is still well above 0.05. It suggests that we cannot reject the null hypothesis.
+
+From the plot, we can find that mod3 do better than mod1.
+
+The Adjusted R-squared is 0.02299. Although the value is bigger than Mod1, it is still too small. (still not good information) 
+
+To sum up, although from the plot, the model has become better, but according to the regression results and t test, ANOVA test, F test results, there are still insignificant covariate(I(x3^3)), so the model still needs to be improved.
+Therefore, I deleted the quadratic and cubic terms, kept only the variable X3, and established a new improved model(mod4).
+```{r}
+mod3 <- lm(log(Y)~x3+I(x3^3), data=training.data)
+summary(mod3)
+anova(mod3)
+##plot
+plot(training.data$x3,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+sort.x3<-sort(training.data$x3)
+fit.lm3<-mod3$coef[1]+mod3$coef[2]*sort.x3+mod3$coef[3]*sort.x3^3
+lines(sort.x3,fit.lm3, type="l", lwd=3, col="red")
+## F test
+anova(mod3,mod0)
+```
+
+From mod4: According to the regression results, it can be found that the variable X3 is statistically significant (According to the t-test p value=0.00378<0.05, it is suggest that we can reject the null hypothesis. So, beta1 of X3 is not equal to 0 at 5% level.)
+
+Adjusted R-squared is 0.02453. Although it is still small, it is already larger than the previous model.
+
+For ANOVA test, the p-value is the same as t-test, so the result is also the same.(x3 is statistically significant)
+
+From the plot, we can get that mod4(linear model) do really well.
+
+In summary, it can be found that only the variable X3 is statistically significant, while the quadratic and cubic terms of X3 are very insignificant. At the same time, the model with only one variable X3 also fits the best of all the compared models. From the plot, although all models can describe the general trend, mod4 does good enough.
+
+Therefore, at 5% confidence level, there is no nonlinear relationship between log(Y) and X3, i.e. there is a linear relationship between log(Y) and X3. (The model should be no flexible, which means the linear model mod4 do really well.)
+```{r}
+mod4 <- lm(log(Y)~x3, data=training.data)
+summary(mod4)
+anova(mod4)
+plot(training.data$x3,log(training.data$Y),pch=16, col="blue", cex.lab=1.5)
+sort.x3<-sort(training.data$x3)
+fit.lm4<-mod4$coef[1]+mod4$coef[2]*sort.x3
+lines(sort.x3,fit.lm4, type="l", lwd=3, col="red")
+```
+
+##(c) (8 points)
+In this part, I directly built three models (modd1, modd2 and modd3) and compared their MSE.
+For modd1, it only contains the variable X3.
+For modd2, it contains X3 and the quadratic term of X3.
+For modd3, it contains X3, the quadratic term of X3 and the cubic term of X3.
+
+Then we can focus on the squared error loss function: L(Y,f(x))=(Y-f(x))^2
+                                                      MSE=Ave[yi-f_hat(Xi)]^2
+So, here we can just use MSE to compare different models.
+
+In this situation, MSE=mean[log(yi)-f_hat(Xi)]^2, and We can use this formula to calculate the MSE using training data and test data separately.
+
+According to the formula, the MSE of the three models can be easily obtained using the training data.
+They are 3.472909(modd1), 3.469600(modd2) and 3.458405(modd3) respectively. We can find that the MSE becomes smaller as the model adds the quadratic term (modd2) and the quadratic, cubic terms(modd3) of X3 respectively.
+
+Based on what we learned in lecture, it tells us that the MSE value decreases as the flexibility of the model increases. However, greater flexibility does not mean a better model, it means that the MSE derived from the training data is not accurate. Therefore, we should select the MSE calculated from the test data as the criterion for selecting the model.
+
+So, I use the predict() function to replace the training data with the new data (test data), and the calculate the MSE of test data.
+We can find that the MSE are 3.365838(modd1), 3.387838(modd2) and 3.495392(modd3) respectively. It can also be found that the MSE increases when model changes, and modd1 has the smallest MSE.
+
+(visualization of the model) Subsequently, in order to more clearly show the ability of the three models to respond to the data and the changes in MSE, I made two plots, which can more intuitively draw similar conclusions.
+As can be seen from Figure 1, the three models all can better reflect the trend of the data, and there is little difference. However, the cubic model is a little more flexible.
+
+The difference between the MSE obtained from the training data(MSE decreases) and the test data(MSE increases) can be seen from Figure 2. It can also be visually found that modd1 does have the smallest MSE under the test data, which is consistent with the above conclusion.
+
+In summary, modd1 has the smallest MSE for testing data, which means that the linear model(modd1) is better than other non-linear models. (the linear model do really well) So, we can say that there may not exist a non-linear relationship between Prescribed Drugs(x3) and the response(log(Y)). There is a linear relationship between Prescribed Drugs(x3) and the response(log(Y)). 
+Therefore, we should choose modd1 (less flexible one) for this part.
+
+The results are exactly the same as 1b.
+```{r}
+modc1 <- lm(log(Y) ~ poly(x3, 1, raw=TRUE), data=training.data) #linear model
+sumary(modc1)
+
+modc2 <- lm(log(Y) ~ poly(x3, 2, raw=TRUE), data=training.data)
+sumary(modc2)
+
+modc3 <- lm(log(Y) ~ poly(x3, 3, raw=TRUE), data=training.data)
+sumary(modc3)
+
+# training MSE
+MSE1.training<-mean((log(training.data$Y)-modc1$fit)^2)
+MSE2.training<-mean((log(training.data$Y)-modc2$fit)^2)
+MSE3.training<-mean((log(training.data$Y)-modc3$fit)^2)
+
+print(c(MSE1.training,MSE2.training,MSE3.training))
+
+# testing MSE
+pred1 <- predict(modc1, newdata = test.data)
+MSE1.test<-mean((log(test.data$Y)-pred1)^2)
+
+pred2 <- predict(modc2, newdata = test.data)
+MSE2.test<-mean((log(test.data$Y)-pred2)^2)
+
+pred3 <- predict(modc3, newdata = test.data)
+MSE3.test<-mean((log(test.data$Y)-pred3)^2)
+
+print(c(MSE1.test,MSE2.test,MSE3.test))
+
+
+## plot for the three models
+p1<-plot(training.data$x3,log(training.data$Y),pch=16, col="grey", cex.lab=1.5)
+sort.x3<-sort(training.data$x3)
+fit.lm11<-modc1$coef[1]+modc1$coef[2]*sort.x3
+fit.lm22<-modc2$coef[1]+modc2$coef[2]*sort.x3+modc2$coef[3]*sort.x3^2
+fit.lm33<-modc3$coef[1]+modc3$coef[2]*sort.x3+modc3$coef[3]*sort.x3^2+modc3$coef[4]*sort.x3^3
+lines(sort.x3,fit.lm11,type="l", lwd=3,col="red") #linear
+lines(sort.x3,fit.lm22,type="l", lwd=3,col="green")
+lines(sort.x3,fit.lm33,type="l", lwd=3,col="blue")
+legend("bottomright",pch=c(15,15),legend=c("linear","quadratic","cubic"),col=c("red","green","blue"))
+p1
+
+##plot for MSE among three possible models
+MSE.training<-c(MSE1.training,MSE2.training,MSE3.training)
+MSE.test<-c(MSE1.test,MSE2.test,MSE3.test)
+
+par(mfcol=c(1,2))
+plot(MSE.training,type="b",col="red")
+points(MSE.training,col=c("red","green","blue"))
+legend("topright",pch=c(15,15),legend=c("linear","quadratic","cubic"),col=c("red","green","blue"))
+plot(MSE.test,type="b",col="black")
+points(MSE.test,col=c("red","green","blue"))
+legend("topleft",pch=c(15,15),legend=c("linear","quadratic","cubic"),col=c("red","green","blue"))
+```
+
+
+##(d) (8 points)
+For this part, I use backward selection approach. (remove the variable with the largest p-value, which is the variable that is least statistically significant.)
+
+#reorder
+First, I built a model that included all variables(x1,...,x7). According to the regression results, I reordered the variables according to the p-value(In order from smallest to largest), and finally built a new model(modd1) with the new ordering.[According to the different ordering of variables, the results of ANOVA test are different, so it is necessary to reorder according to the p-value before testing.]
+
+#modd1
+According to the regression results of modd1, it can be found that only X6 and X2 are statistically significant at the 5% confidence level. (ie the p-value is less than 0.05 according to the t-test) However, the p-values for the variables X4 and X5 are also very close to 0.05, so no certain conclusions can be drawn about the significance of the variables here. The p-values of the remaining variables x1, x7 and x3 are all much larger than 0.05, so I preliminarily judge that they are not statistically significant. 
+The ANOVA test also gave similar results. When the variables were added in the model according to the order of the variables, the p-value increased, especially when the variable X3 was added, the p-value(0.81250) was very large (much greater than 0.05). (Note that when adding X1, X7 and X3, the p-values are all much larger than 0.05, so none of them can reject the null hypothesis (small model), here I only discuss X3 with the largest p-value). For this test, variables x2, x6, x4 and x5 are statistically significant at 5% level.
+
+Therefore, I first deleted the variable X3 with the largest p-value(0.8125>>0.05), and used the remaining variables to make a new model(modd2).
+
+#modd2
+For modd2, similar to the test and process of modd1, it can be found that in the regression results, variables X2, X6, and X4 are statistically significant. (According to the t-test, the p-value is less than 0.05) Interestingly, compared to modd1, X4 becomes more significant, and the p-value becomes less than 0.05; although X5 is not significant at the 5% confidence level, it is still very close to 0.05, Therefore, the significance of X5 can be further tested. The p-values for X1 and X7 are much greater than 0.05, so we cannot reject the null hypothesis(beta of X1 =0/ beta of X7 =0). So, X1 and X7 are not statistically significant.
+Similarly, according to the ANOVA test, it can be found that only the p-values of variables X1 and X7 are far greater than 0.05, so these two variables can be considered to be deleted from the model.
+
+Therefore, based on the above results, I removed the variable X7 with the largest p value(0.56850) on the basis of modd2, and established modd3.
+
+#modd3
+According to the results of modd3, it can be found that the p-values of the three variables of X2, X6 and X4 are still less than 0.05, so at the 5% confidence level, we can reject the null hypothesis. That is, these three variables are statistically significant. Again, the p-value of X5 is still very close to 0.05, and we still need to test it further.
+For the ANOVA test, X2, X6, X4, and X5 were all statistically significant (p-value less than 0.05), and only X1 was not statistically significant. (p-value =0.35001 is much larger than 0.05).
+
+Combined with the above conclusions, I deleted the X1 with the largest p value(0.35001) from the modd3, which is modd4.
+
+#modd4
+According to the results of modd4, it can be found that all variables(x2, x6, x4 and x5) are statistically significant under the t-test (that is, the p-value is less than 0.05). (Interestingly, the p-value of variable X5 has changed from close to 0.05 before to less than 0.05, which is undoubtedly good news, indicating that X5 is indeed significant.)
+According to the ANOVA test, it can be found that the p-values of all variables are less than 0.05, that is, all variables are significant at the 5% confidence level.
+
+The above results tell us that all variables in Modd4 are statistically significant, so Modd4 is better enough. So,we can just stop removing here.
+
+
+Before giving final conclusions, it is necessary to make some comparisons between the models to check.
+#Comparing Adjusted R-squares for Different Models
+For modd1, Adjusted R-squared:  0.5355.
+For modd2, Adjusted R-squared:  0.537 
+For modd3, Adjusted R-squared:  0.5381
+For modd4, Adjusted R-squared:  0.5383 
+We can find that the adjusted r-square keeps increasing from modd1 to modd4. Although the four values are relatively close, we can still say that the model four fits better, which also verifies the previous conclusions.
+#Joint F test for different models as verification
+I also did some joint F-tests to verify the previous conclusions. I first tested and compared modd1 and modd2, and found that the p-value (0.8125) was much larger than 0.05, so I could not reject the null hypothesis (ie, small model modd2). Therefore, it can be concluded that modd2 can better reflect the training data. So we need to remove X3 from the model.[H0:beta of x3=0; H1: at least one of them is not equal to 0 OR beta of x3 is not equal to 0, same as t test in this part]
+
+Then I tested and compared modd1 and modd3, and the conclusions were similar, the P value was much greater than 0.05, so we could not reject the null hypothesis (small model modd3) at 5% level. So it is suggested that variables x7 and x3 are not joint statistically significant.[H0:beta of x7=beta of x3=0; H1: at least one of them is not equal to 0]
+
+In the end I tested Modd1 and Modd4, and the p-value is also much greater than 0.05, so we cannot reject the small model (Modd4). So it is suggested that variables x1, x7 and x3 are joint statistically insignificant.[H0:beta of x7=beta of x3=beta of x1=0; H1: at least one of them is not equal to 0]
+
+Note that I did not use the F-test to test Modd2 and Modd3 because this is already reflected in the ANOVA test.
+
+#Conclusions
+Combining the above I can find that the variables x2, x6, x4 and x5 are statistically significant at the 5% confidence level. So we do need to remove insignificant variables(x1, x7 and x3) to get a better model. (This means we really do not need to use all the covariates).
+Therefore, Modd4 includes only statistically significant variables, showing that it is a better choice in this part.
+
+```{r}
+modd <- lm(log(Y)~x1+x2+x3+x4+x5+x6+x7, data=training.data)
+sumary(modd)
+anova(modd) #Can not trust this one because of the ordering of the variables
+
+##give some order
+modd1 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3, data=training.data)
+summary(modd1)
+anova(modd1) ##can trust this one
+#remove x3
+modd2 <- lm(log(Y)~x2+x6+x4+x5+x1+x7, data=training.data)
+summary(modd2)
+anova(modd2)
+
+#remove x3 and x7
+modd3 <- lm(log(Y)~x2+x6+x4+x5+x1, data=training.data)
+summary(modd3)
+anova(modd3)
+
+#remove some not significant variables (x3, x7 and x1) (select this model)
+modd4 <- lm(log(Y)~x2+x6+x4+x5, data=training.data)
+summary(modd4)
+anova(modd4)#good one (all significant with alpha=0.05)
+
+#Joint F test
+anova(modd1,modd2)
+anova(modd1,modd3)
+anova(modd1,modd4)
+```
+
+##(e)
+According to 1d, mode1 is established according to the order of the variables p value from small to large. Then reduce one variable in turn, build a total of 5 models, and calculate their MSE under the training data and test data respectively.
+
+The reason why five models are established is because in the previous question, it can be found that mode4 is good enough, so theoretically I only need to test the MSE of the first four models. However, in order to better reflect the change of MSE with the reduction of model variables, I still add mode5(remove one more variable X5 from mode4) for discussion. 
+
+At the same time, I also made five plots of the MSE changes of the 5 models under the training data and the test data respectively.
+
+Same as I mentioned before, the squared error loss function is L(Y,f(x))=(Y-f(x))^2
+                                                             MSE=Ave[yi-f_hat(Xi)]^2
+So, here we can just use MSE to compare different models.
+
+In this situation, MSE=mean[log(yi)-f_hat(Xi)]^2, and We can use this formula to calculate the MSE using training data and test data separately.
+
+From the MSE values and plot results, we can find that both under the training data and the test data, the MSE increases as the variables in the model decrease.
+According to this result, it is surprising to find that the MSE of mode1 is the smallest, and obviously under the MSE theory, the mode1 is the best.
+Therefore, all variables should be kept in the model because mode1 has the smallest MSE.
+
+Surprisingly, the result of this part is completely opposite to the conclusion of 1d. The reason may be that MSE is greatly affected by outliers, and it can be found that there are indeed outliers according to the previous plot in 1a. At the same time, too small MSE may also be due to overfitting of the model, which will also make its conclusion contrary to 1d. Therefore, the MSE results are inconsistent with the traditional conclusions based on tests(1d). 
+
+In conclusion, the MSE is larger when we remove the covariates, so mode1 do better under MSE theory, which is the exact opposite of the result of 1d. This means that all covariates should be included in the model.
+```{r}
+mode1 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3, data=training.data)
+sumary(mode1)
+
+mode2 <- lm(log(Y)~x2+x6+x4+x5+x1+x7, data=training.data)
+
+mode3 <- lm(log(Y)~x2+x6+x4+x5+x1, data=training.data)
+
+mode4 <- lm(log(Y)~x2+x6+x4+x5, data=training.data) ##part d select this model
+sumary(mode4)
+
+mode5 <- lm(log(Y)~x2+x6+x4, data=training.data)
+
+# training MSE
+MSEe1.training<-mean((log(training.data$Y)-mode1$fit)^2)
+MSEe2.training<-mean((log(training.data$Y)-mode2$fit)^2)
+MSEe3.training<-mean((log(training.data$Y)-mode3$fit)^2)
+MSEe4.training<-mean((log(training.data$Y)-mode4$fit)^2)
+MSEe5.training<-mean((log(training.data$Y)-mode5$fit)^2)
+
+print(c(MSEe1.training,MSEe2.training,MSEe3.training,MSEe4.training,MSEe5.training))
+
+# testing MSE
+prede1 <- predict(mode1, newdata = test.data)
+MSEe1.test<-mean((log(test.data$Y)-prede1)^2)
+
+prede2 <- predict(mode2, newdata = test.data)
+MSEe2.test<-mean((log(test.data$Y)-prede2)^2)
+
+prede3 <- predict(mode3, newdata = test.data)
+MSEe3.test<-mean((log(test.data$Y)-prede3)^2)
+
+prede4 <- predict(mode4, newdata = test.data)
+MSEe4.test<-mean((log(test.data$Y)-prede4)^2)
+
+prede5 <- predict(mode5, newdata = test.data)
+MSEe5.test<-mean((log(test.data$Y)-prede5)^2)
+
+# plot(prede2,test.data$Y) not sure the usage.
+print(c(MSEe1.test,MSEe2.test,MSEe3.test,MSEe4.test,MSEe5.test))
+
+##plot for MSE among four possible models
+MSEe.training<-c(MSEe1.training,MSEe2.training,MSEe3.training,MSEe4.training,MSEe5.training)
+MSEe.test<-c(MSEe1.test,MSEe2.test,MSEe3.test,MSEe4.test,MSEe5.test)
+
+par(mfcol=c(1,2))
+plot(MSEe.training,type="b",col="red")
+points(MSEe.training,col=c("red","green","blue","yellow","purple"))
+legend("topleft",pch=c(15,15),legend=c("mode1","mode2","mode3","mode4","mode5"),col=c("red","green","blue","yellow","purple"))
+plot(MSEe.test,type="b",col="black")
+points(MSEe.test,col=c("red","green","blue","yellow","purple"))
+legend("topleft",pch=c(15,15),legend=c("mode1","mode2","mode3","mode4","mode5"),col=c("red","green","blue","yellow","purple"))
+```
+
+##(f) (8 points)
+(Cormbidities is x6)
+[Preliminary judgment] 
+I first established a null hypothesis model(modf) with no interaction terms and only included X1,...,X7, and then established a model with all 6 X6-related interaction terms(x6:x1, x6:x2, x6:x3, x6:x4, x6:x5 and x6:x7) and X1,...,X7 as an alternative hypothesis model(modf1).
+According to the regression results of modf1, it can be found that the p-values of all interaction terms are much greater than 0.05 under the t test, so the null hypothesis cannot be rejected. Therefore, we can preliminarily judge that at the 5% confidence level, all interaction terms are not statistically significant respectively.
+Then I did an joint F test on these two models and found that the p value(0.9019) was much larger than 0.05 (even close to 1), which suggested that the null hypothesis (small model modf) could not be rejected, so I initially judged that the interaction terms are not joint statistically significant at 5% level.[H0:beta of all interactions=0 respectively; H1: at least one of them is not equal to 0.]
+
+However, due to too many interaction terms, I still use the Backward selection method for further exploration and verification.
+
+(Backward selection) Firstly I fit a model with all covariates and all interactions between cormbidities and the other covariates(modf1).
+Then, in order to better remove the insignificant interaction terms according to the ANOVA test results, I reordered all the interaction terms in modf1 from small to large p-values to obtain modf11. In this model, I found that the interaction of Comorbidities with X5 has the largest p-value (which is the least statistically significant), so I just remove this interaction,and get a new model(modf2).
+
+Using the same method, I removed one interaction term with the largest p-value each time. They are models modf2, modf3, modf4, modf5, modf6 and modf7, respectively. It's worth noting that until I removed all the interaction terms, whether it was a t-test, an ANOVA test or an F-test, all test results suggested that no statistically significant interaction terms were found. This is consistent with the results of the previous preliminary judgment.[Since there are too many repeated tests, I omitted some of the tests. Here's a quick summary: All t-tests, ANOVA test results show that p-values for all interaction terms are much greater than 0.05. In the F test, the p-values are also much larger than 0.05, so the null hypothesis (ie, small model) cannot be rejected. So I conclude that there is no statistically significant interaction term at the 5% confidence level. ]
+
+Therefore, cormbidities(x6) has no statistically significant interactions with any of the other covariates.
+```{r}
+modf <- lm(log(Y)~x1+x2+x3+x4+x5+x6+x7, data=training.data)
+sumary(modf)
+
+modf1 <- lm(log(Y)~x1+x2+x3+x4+x5+x6+x7+x6:x1+x6:x2+x6:x3+x6:x4+x6:x5+x6:x7, data=training.data)
+sumary(modf1)
+anova(modf1)
+
+anova(modf1,modf) #can not reject modf
+
+#reorder according to the p-value
+modf11 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x4+x6:x3+x6:x2+x6:x5, data=training.data)
+sumary(modf11)
+anova(modf11)
+
+##remove x6:x5
+modf2 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x4+x6:x3+x6:x2, data=training.data)
+sumary(modf2)
+anova(modf2)
+
+anova(modf2,modf) #can not reject modf
+
+##remove x6:x2
+modf3 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x4+x6:x3, data=training.data)
+sumary(modf3)
+anova(modf3)
+
+anova(modf3,modf) #can not reject modf
+```
+
+```{r}
+##remove x4:x6
+modf4 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x3, data=training.data)
+sumary(modf4)
+anova(modf4)
+
+anova(modf4,modf) #can not reject modf
+
+##remove x6:x7
+modf5 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x3, data=training.data)
+sumary(modf5)
+anova(modf5)
+
+anova(modf5,modf) #can not reject modf
+
+##remove x6:x3
+modf6 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1, data=training.data)
+sumary(modf6)
+anova(modf6)
+
+anova(modf6,modf)#can not reject modf
+
+##remove all interactions modf7 is same as modf
+modf7 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3, data=training.data)
+sumary(modf7)
+anova(modf7)
+
+anova(modf7,modf1) #can not reject modf7
+```
+
+##(g) (8 points)
+According to the order of variables in the previous question 1f, I built modg1, and then deleted the interaction item with the largest p value each time until there was no interaction item in the model. (A total of 7 models: modg1, modg2, modg3, modg4, modg5, modg6, modg7)
+Then I calculated the MSE of these seven models and made a graph to reflect the change of MSE more intuitively.
+
+[Same formula of MSE as mentioned before, the squared error loss function is L(Y,f(x))=(Y-f(x))^2
+                                                             MSE=Ave[yi-f_hat(Xi)]^2
+
+In this situation, MSE=mean[log(yi)-f_hat(Xi)]^2, and We can use this formula to calculate MSE using training data and test data separately.]
+
+Through numerical values and plots, it can be found that under the training data, the MSE increases as the interaction terms in the model decrease sequentially. According to the lecture content, it can be known that this is inappropriate, and the MSE that is too small may also be due to overfitting. Therefore, this is not used as a basis for selection, but only for reference.
+
+Under the testing data, MSE first increased and then decreased sharply with the decrease of the interaction term in the model, and then increased significantly after the modg4 reached the minimum value.
+
+It is noteworthy that Modg4 has the smallest MSE(1.258257) under the test data, which means that Modg4 performs better under the MSE selection theory. This also indicates that in this part, the interaction terms of x6 with X1, X7 and X3, respectively, should be included in the model.(x6:x1, x6:x7 and x6:x3 should be included in the model)
+
+The conclusion of this part is that the interaction terms of x6(Comorbidities) with x1, x7 and x3 should be included in the model, which is obviously different from the results of 1f. The test results of 1f all show that there is no statistically significant interaction term, which means that 1f suggested that the model should not contain any interaction terms related to X6.
+
+This difference may be due to the fact that MSE is heavily influenced by outliers, which do exist in the data set, and there is also a potential for overfitting. This makes MSE less accurate. At the same time, there are many variables in the model, the difference in the number of variables between different models is too large, and the data size is not large enough, which will lead to inaccurate MSE. Therefore, the results of 1g are different from those of the 1f.
+
+To sum up, interactions of X6 with x1, x7 and x3(x6:x1, x6:x7 and x6:x3) should be included in the model. The results of 1g are different from 1f.
+```{r}
+modg1 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x4+x6:x3+x6:x2+x6:x5, data=training.data)
+modg2 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x4+x6:x3+x6:x2, data=training.data)
+modg3 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x4+x6:x3, data=training.data)
+modg4 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x3, data=training.data)
+modg5 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x3, data=training.data)
+modg6 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1, data=training.data)
+modg7 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3, data=training.data)
+# training MSE
+MSEg1.training<-mean((log(training.data$Y)-modg1$fit)^2)
+MSEg2.training<-mean((log(training.data$Y)-modg2$fit)^2)
+MSEg3.training<-mean((log(training.data$Y)-modg3$fit)^2)
+MSEg4.training<-mean((log(training.data$Y)-modg4$fit)^2)
+MSEg5.training<-mean((log(training.data$Y)-modg5$fit)^2)
+MSEg6.training<-mean((log(training.data$Y)-modg6$fit)^2)
+MSEg7.training<-mean((log(training.data$Y)-modg7$fit)^2)
+
+
+print(c(MSEg1.training,MSEg2.training,MSEg3.training,MSEg4.training,MSEg5.training,MSEg6.training,MSEg7.training))
+
+# testing MSE
+predg1 <- predict(modg1, newdata = test.data)
+MSEg1.test<-mean((log(test.data$Y)-predg1)^2)
+
+predg2 <- predict(modg2, newdata = test.data)
+MSEg2.test<-mean((log(test.data$Y)-predg2)^2)
+
+predg3 <- predict(modg3, newdata = test.data)
+MSEg3.test<-mean((log(test.data$Y)-predg3)^2)
+
+predg4 <- predict(modg4, newdata = test.data)
+MSEg4.test<-mean((log(test.data$Y)-predg4)^2)
+
+predg5 <- predict(modg5, newdata = test.data)
+MSEg5.test<-mean((log(test.data$Y)-predg5)^2)
+
+predg6 <- predict(modg6, newdata = test.data)
+MSEg6.test<-mean((log(test.data$Y)-predg6)^2)
+
+predg7 <- predict(modg7, newdata = test.data)
+MSEg7.test<-mean((log(test.data$Y)-predg7)^2)
+
+print(c(MSEg1.test,MSEg2.test,MSEg3.test,MSEg4.test,MSEg5.test,MSEg6.test,MSEg7.test))
+
+#plot of MSE
+MSEg.training<-c(MSEg1.training,MSEg2.training,MSEg3.training,MSEg4.training,MSEg5.training,MSEg6.training,MSEg7.training)
+MSEg.test<-c(MSEg1.test,MSEg2.test,MSEg3.test,MSEg4.test,MSEg5.test,MSEg6.test,MSEg7.test)
+
+par(mfcol=c(1,2))
+plot(MSEg.training,type="b",col="red")
+points(MSEg.training,col=c("red","green","blue","yellow","purple","black","grey"))
+legend("topleft",pch=c(15,15),legend=c("modg1","modg2","modg3","modg4","modg5","modg6","modg7"),col=c("red","green","blue","yellow","purple","black","grey"))
+plot(MSEg.test,type="b",col="black")
+points(MSEg.test,col=c("red","green","blue","yellow","purple","black","grey"))
+```
+
+##(h) (10 points)
+[traditional selection approach] From part 1a, I know that the natural log transformation of the response(Y) is necessary, so I just use log transformation for all models.
+
+[traditional] From 1b, I can get that at 5% confidence level, there is no nonlinear relationship between log(Y) and X3 (i.e. there is a linear relationship between log(Y) and X3)
+
+[squared-error loss for the testing data approach] From 1c, I got the same conclusion as 1b, which is that there is a linear relationship between log(Y) and X3.
+
+[traditional] From 1d, I can find that after removing the insignificant variables(x1, x7 and x3), the model only with 
+variables x2, x6, x4 and x5 is better than other models, at the 5% confidence level.
+(Select modd4 <- lm(log(Y)~x2+x6+x4+x5, data=training.data))
+
+[squared-error loss] From 1e, it suggested that all covariates(x1,...,x7) should be included in the model.
+(select mode1 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3, data=training.data))
+
+[traditional] From 1f, it suggested that cormbidities(x6) has no statistically significant interactions with any of the other covariates.
+(select modf7 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3, data=training.data))
+
+[squared-error loss] From 1g, it is suggested that interactions of X6 with x1, x7 and x3(x6:x1, x6:x7 and x6:x3) should be included in the model.
+(select modg4 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x3, data=training.data))
+
+According to all the conclusions obtained before, I refit all possible models and compare them to choose a better one.
+
+By comparing the regression results of all models, it can be found that only in modh1 all variables are statistically significant in the t test (that is, all p values are less than 0.05), therefore, modh1 is optimal under this test.
+
+At the same time, I also compared the adjusted R-square of the three models based on the regression results. Because the number of variables in these three models is different, it is not accurate enough to use the R-square, so I select the adjusted R-square for this comparison. (The R-square increases with the increase of the number of variables, which means that an increase in R-square also may not exactly mean an improvement in the model's fit. So for models with different numbers of variables, an adjusted R-square should be used.)
+For modh1, Adjusted R-squared is  0.5383 
+For modh2, Adjusted R-squared is  0.5355 
+For modh3, Adjusted R-squared is  0.532 
+It can be found that although there is little difference in the adjusted R-square among the three, modh1 has a larger value. So it can be said that modh1 is better according to the adjusted R-squared results.
+
+Also, through the values of AIC,BIC, it is suggested that modh1 has both the smallest AIC and BIC among the three models. Therefore, modh1 fits well.
+
+According to the joint F-test, the p-values of the three tests are far greater than 0.05, so it is suggested that we cannot reject the null hypothesis (small model modh1). Therefore, according to the F-test results, it can be found that the small model modh1 is better.
+
+According to the MSE results under the test data, it can be found that from modh1 to modh3, with the increase of variables, the MSE decreases. This shows that under the squared-error loss selection method, modh3 is better.[the mean-squared error on the testing data of the three models are 1.304972, 1.279956 and 1.258257 respectively] (using the formula MSE=mean[log(yi)-f_hat(Xi)]^2)
+
+In conclusion, according to the comparison of the above various tests and MSE values, it can be found that the t-test, the joint F-test and the adjusted R-squared all select the modh1. However, the MSE results show that modh3 is better. It can also be said that the traditional selection approach selected modh1, and the squared-error loss for the testing data approach selected modh3.
+
+In my opinion, I would choose modh1, first because modh1 performs well under all three traditional tests, and each variable is statistically significant, while the other two models have many variables that are not significant at all. This also shows that Modh1 fits the best among the three and better reflects the training data. Second, although MSE has reference value, it is affected by outliers, and the large difference in the number of variables between different models will also affect the MSE results. Therefore, MSE may not be as accurate. Although the MSE values of the three models are different, the difference in MSE appears to be very small when compared with the significant difference(using traditional method).
+
+Therefore, in this part, I would like to choose to use the traditional selection method (based on t-test, F-test and model regression results), and finally choose modh1 as the final model. The mean-squared error on the testing data of modh1 is 1.304972.
+```{r}
+##using traditional model selection approsch.(Backward Selection) from 1d
+modh1 <- lm(log(Y)~x2+x6+x4+x5, data=training.data)
+summary(modh1)
+
+# model from 1e and 1f
+modh2 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3, data=training.data)
+summary(modh2)
+
+#model from 1g
+modh3 <- lm(log(Y)~x2+x6+x4+x5+x1+x7+x3+x6:x1+x6:x7+x6:x3, data=training.data)
+summary(modh3)
+
+#joint F test
+anova(modh3,modh1)
+anova(modh2,modh1)
+anova(modh3,modh2)
+
+#compare AIC, BIC
+AIC(modh1,modh2,modh3)
+BIC(modh1,modh2,modh3)
+
+# training MSE
+MSEh1.training<-mean((log(training.data$Y)-modh1$fit)^2)
+MSEh2.training<-mean((log(training.data$Y)-modh2$fit)^2)
+MSEh3.training<-mean((log(training.data$Y)-modh3$fit)^2)
+
+# testing MSE
+predh1 <- predict(modh1, newdata = test.data)
+MSEh1.test<-mean((log(test.data$Y)-predh1)^2)
+
+predh2 <- predict(modh2, newdata = test.data)
+MSEh2.test<-mean((log(test.data$Y)-predh2)^2)
+
+predh3 <- predict(modh3, newdata = test.data)
+MSEh3.test<-mean((log(test.data$Y)-predh3)^2)
+
+
+print(c(MSEh1.training,MSEh2.training,MSEh3.training))
+print(c(MSEh1.test,MSEh2.test,MSEh3.test))
+
+
+#plot of MSE
+MSEh.training<-c(MSEh1.training,MSEh2.training,MSEh3.training)
+MSEh.test<-c(MSEh1.test,MSEh2.test,MSEh3.test)
+
+par(mfcol=c(1,2))
+plot(MSEh.training,type="b",col="red")
+points(MSEh.training,col=c("red","green","blue"))
+legend("topright",pch=c(15,15),legend=c("modh1","modh2","modh3"),col=c("red","green","blue"))
+plot(MSEh.test,type="b",col="black")
+points(MSEh.test,col=c("red","green","blue"))
+legend("topright",pch=c(15,15),legend=c("modh1","modh2","modh3"),col=c("red","green","blue"))
+```
+
+##(i) (21 points)
+The final model I chose in 1h was modh1 (modh1 <- lm(log(Y)~x2+x6+x4+x5, data=training.data)). Therefore, I will do some discussion based on modh1 below.
+
+log(Yi)=beta0+beta1*X2+beta2*x6low+beta3*x6medium+beta4*x4+beta5*x5
+
+Interpretation:
+beta0_hat (intercept)=5.97921 USD. It is the coefficient on the constant, also it is where the line goes through the point where all variables (x2, x6, x4 and x5) equals 0. It is also means that women with coronary heart disease with zero Procedures, Comorbidities, Emergency Room Visits and Complications would have a predicted log(claim amount) of 597.921% over a 24 month period.
+
+beta1_hat (of X2)=0.19282 USD, means a change in the number of Procedures by 1 unit is associated with a 19.282% change in Claims amounts($), holding all else constant. Also, the sign of beta1 is positive, which means there is a positive relationship between log(Claims amounts) and Procedures.
+ 
+For X6:
+beta2_hat (of x6low)=-1.31537 USD, means when the Comorbidities is low, an increase in the number of low Comorbidities by 1 unit, the claims amount decrease by 131.537%, holding all else constant.(There is a negative relationship between x6low and log(Y)).
+beta3_hat (of x6medium)=-0.63572 USD, means when the Comorbidities is medium, an increase in the number of medium Comorbidities by 1 unit, the claims amount decrease by 63.572%, holding all else constant.(There is also a negative relationship between x6medium and log(Y)).
+For X6 variable, the Baseline is high Comorbidities, which means that when the Comorbidities is high, the beta2_hat = beta3_hat=0. [log(Yi)=beta0+beta1*X2+beta4*x4+beta5*x5]
+
+beta4_hat (of x4)=0.07073 USD, means an increase in the number of Emergency Room Visits by 1 unit, the claims amount also increase by 7.073%, holding all else constant.(also positive relationship between X4 and log(Y))
+
+beta5_hat (of x5)=0.71571 USD, means for each additional number of Complications, the claims amount increase by 71.571%, holding all else constant.(positive relationship).
+
+
+R-squared is 0.546, which means that 54.6% of the variation in log(Y) (log(Claims)) is explained by variations in Procedures, Comorbidities (low, medium, high), Emergency Room Visits and Complications.(x2, x6, x4 and x5).
+
+Approximate 95% confidence intervals for each beta were also calculated.
+For Intercept is (5.648342353, 6.3100787)
+For x2 is (0.163257615, 0.2223760)
+For x6low is (-1.645814664, -0.9849177)
+For x6medium is (-1.077505048, -0.1939304)
+For x4 is (0.004215060, 0.1372440)
+For x5 is (0.007821929, 1.4235888)
+It can be found that none of the intervals contain 0.
+
+[visualisations of the fitted model]
+From the Normal Q-Q plot, although there are many outliers on both sides of the plot, the middle part is close to a straight line, so it can be said that this model fits ok but not perfect.[middle part of the points lie on a straight line.] The qq plot also shows that there is some normality as well. [pretty close to line except in upper right and bottom left, still good]
+
+From plot Residuals vs Fitted, some heteroscedasticity can be found for residuals. There are also some outliers(53,5,32). This means that the model needs to be further improved.
+
+From scale-location plot, also some heteroscedasticity can be found, but better than plot Residuals vs Fitted. There are also some outliers can be found (53,5,32). This means that the model needs to be further improved.
+
+From Residuals vs Leverage plot, it can be found that there are indeed some influential points in the model. There are also some high leverage points which have large effect on estimates.(points 260,291 and 32) [we know that observations far from xhat will have larger leverage, which will have greater influence on the fitted regression.(changing their log(Y) little will change the fitted line a lot)]
+
+From the cooksd plot, it can be found that most of the points are close to each other, with only one very large point (greater than 0.9). Through the glimpse() function we can see the large cooksd value is 1.131184. So this further tells us that there are indeed influential points in the model. This may require us to further improve the model.
+```{r}
+summary(modh1)
+confint(modh1,level=0.95)
+plot(modh1)
+plot(predh1,test.data$Y)
+
+library(broom)
+library(ggplot2)
+aug<-augment(modh1)%>% 
+  select(.cooksd)
+
+aug %>%
+  ggplot(aes(x=.cooksd))+geom_dotplot()
+
+aug %>%
+  filter(.cooksd>0.9) %>%
+  glimpse()
+```
+
+
+```{r}
+library("sjPlot")
+plot_model(modh1)
+```
+
+
+
